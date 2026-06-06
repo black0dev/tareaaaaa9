@@ -33,7 +33,7 @@ def _build_variant_out(v: ProductVariant) -> ProductVariantOut:
 def _build_image_out(img: ProductImage) -> ProductImageOut:
     return ProductImageOut(
         id=img.id,
-        image_url=img.image_url,
+        image_url=img.url,
         alt_text=img.alt_text,
         is_primary=img.is_primary,
         sort_order=img.sort_order,

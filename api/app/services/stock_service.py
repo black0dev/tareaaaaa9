@@ -31,7 +31,7 @@ async def adjust_stock(
             f"No se encontro la variante con id {variant_id}.",
         )
 
-    previous_stock = variant.stock
+    previous_stock = variant.stock_quantity
     new_stock = previous_stock + adjustment
 
     if new_stock < 0:
@@ -50,17 +50,16 @@ async def adjust_stock(
     await db.execute(
         update(ProductVariant)
         .where(ProductVariant.id == variant_id)
-        .values(stock=new_stock)
+        .values(stock_quantity=new_stock)
     )
 
     adjustment_record = StockAdjustment(
-        product_variant_id=variant_id,
-        adjustment=adjustment,
-        previous_stock=previous_stock,
-        new_stock=new_stock,
-        reason="ajuste_manual_admin",
-        reference_type="manual",
-        created_by=admin_profile_id,
+        variant_id=variant_id,
+        delta_quantity=adjustment,
+        previous_stock_quantity=previous_stock,
+        new_stock_quantity=new_stock,
+        reason_type="ajuste_manual_admin",
+        created_by_profile_id=admin_profile_id,
     )
     db.add(adjustment_record)
 

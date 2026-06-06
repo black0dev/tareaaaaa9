@@ -22,9 +22,16 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class AdminUserOut(BaseModel):
+    id: str
+    email: str
+    full_name: str
+
+
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user: AdminUserOut
 
 
 @router.post("/login", response_model=APIResponse)
@@ -66,5 +73,12 @@ async def admin_login(payload: LoginRequest, db: AsyncSession = Depends(get_db))
     access_token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
     return APIResponse.success(
-        data=LoginResponse(access_token=access_token).model_dump()
+        data=LoginResponse(
+            access_token=access_token,
+            user=AdminUserOut(
+                id=profile.id,
+                email=profile.email,
+                full_name=profile.full_name,
+            ),
+        ).model_dump()
     )
