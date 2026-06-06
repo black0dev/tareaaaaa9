@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import ImageGallery, {
@@ -9,6 +9,8 @@ import ImageGallery, {
 import VariantSelector, {
   type VariantOption,
 } from "@/components/product/VariantSelector";
+import CartToast from "@/components/cart/CartToast";
+import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
 
 export interface ProductDetailData {
@@ -33,6 +35,8 @@ export default function ProductDetailClient({
   const [selectedVariant, setSelectedVariant] = useState<VariantOption | null>(
     null
   );
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { addItem } = useCart();
 
   // Precio a mostrar: el de la variante seleccionada o el precio minimo
   const displayPrice = useMemo(() => {
@@ -46,6 +50,34 @@ export default function ProductDetailClient({
     selectedVariant !== null && selectedVariant.stock_quantity > 0;
 
   const isOutOfStock = selectedVariant !== null && selectedVariant.stock_quantity === 0;
+
+  // Imagen primaria para el carrito
+  const primaryImage = product.images.find((img) => img.is_primary);
+  const primaryImageUrl = primaryImage?.image_url || product.images[0]?.image_url || null;
+
+  // Handler para agregar al carrito
+  const handleAddToCart = useCallback(() => {
+    if (!selectedVariant) return;
+
+    const variantLabel = selectedVariant.color
+      ? `${selectedVariant.size} / ${selectedVariant.color}`
+      : selectedVariant.size;
+
+    addItem({
+      product_id: product.id,
+      product_slug: product.slug,
+      variant_id: selectedVariant.id,
+      product_name: product.name,
+      variant_label: variantLabel,
+      size: selectedVariant.size,
+      color: selectedVariant.color,
+      sku: selectedVariant.sku,
+      price_amount: selectedVariant.price_amount,
+      primary_image_url: primaryImageUrl,
+    });
+
+    setToastMessage(`${product.name} (${variantLabel}) agregado al carrito`);
+  }, [selectedVariant, product, addItem, primaryImageUrl]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
@@ -139,6 +171,7 @@ export default function ProductDetailClient({
               size="lg"
               className="w-full"
               disabled={!canAddToCart}
+              onClick={handleAddToCart}
             >
               {isOutOfStock
                 ? "Agotado"
@@ -159,6 +192,14 @@ export default function ProductDetailClient({
           </div>
         </div>
       </div>
+
+      {/* Toast de feedback */}
+      {toastMessage && (
+        <CartToast
+          message={toastMessage}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
     </div>
   );
 }

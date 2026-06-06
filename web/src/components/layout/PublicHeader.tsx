@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CartIcon from "@/components/cart/CartIcon";
 
 export default function PublicHeader() {
   return (
@@ -31,13 +32,18 @@ export default function PublicHeader() {
             </Link>
           </nav>
 
-          <div className="sm:hidden">
-            <Link
-              href="/catalogo"
-              className="text-sm font-medium text-indigo-600"
-            >
-              Catálogo
-            </Link>
+          {/* Cart icon + mobile nav */}
+          <div className="flex items-center gap-2">
+            <CartIcon />
+
+            <div className="sm:hidden">
+              <Link
+                href="/catalogo"
+                className="text-sm font-medium text-indigo-600"
+              >
+                Catálogo
+              </Link>
+            </div>
           </div>
         </div>
       </div>
