@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.exceptions import AppError
 from app.models import Order, Profile
 from app.schemas.common import APIResponse
 from app.schemas.order import StatusTransitionRequest, StatusTransitionResponse
@@ -26,10 +25,9 @@ async def transition_order_status(
     order = result.scalar_one_or_none()
 
     if order is None:
-        raise AppError(
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            code="not_found",
-            message=f"Pedido {order_id} no encontrado",
+            detail=f"Pedido {order_id} no encontrado",
         )
 
     try:
@@ -41,11 +39,14 @@ async def transition_order_status(
             notes=payload.notes,
         )
     except OrderServiceError as e:
-        raise AppError(
-            status_code=status.HTTP_409_CONFLICT,
-            code=e.code,
-            message=e.message,
-            details=e.details,
+        if e.code == "invalid_status_transition":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=e.message,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message,
         )
 
     return APIResponse.success(
@@ -68,10 +69,9 @@ async def manual_payment_confirmation(
     order = result.scalar_one_or_none()
 
     if order is None:
-        raise AppError(
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            code="not_found",
-            message=f"Pedido {order_id} no encontrado",
+            detail=f"Pedido {order_id} no encontrado",
         )
 
     try:
@@ -83,11 +83,14 @@ async def manual_payment_confirmation(
             notes=payload.notes,
         )
     except PaymentServiceError as e:
-        raise AppError(
-            status_code=status.HTTP_409_CONFLICT if e.code == "payment_already_confirmed" else status.HTTP_400_BAD_REQUEST,
-            code=e.code,
-            message=e.message,
-            details=e.details,
+        if e.code == "payment_already_confirmed":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=e.message,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message,
         )
 
     return APIResponse.success(

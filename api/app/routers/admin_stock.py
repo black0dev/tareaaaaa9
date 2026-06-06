@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.exceptions import AppError
 from app.models import Profile
 from app.schemas.common import APIResponse
 from app.schemas.stock import StockAdjustmentRequest, StockAdjustmentResponse
@@ -32,12 +31,7 @@ async def create_stock_adjustment(
             "negative_stock_not_allowed": status.HTTP_409_CONFLICT,
         }
         http_status = status_code_map.get(e.code, status.HTTP_400_BAD_REQUEST)
-        raise AppError(
-            status_code=http_status,
-            code=e.code,
-            message=e.message,
-            details=e.details,
-        )
+        raise HTTPException(status_code=http_status, detail=e.message)
 
     return APIResponse.success(
         data=StockAdjustmentResponse(**result_data).model_dump()

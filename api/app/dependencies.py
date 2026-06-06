@@ -45,7 +45,7 @@ async def get_current_admin(
         )
 
     is_admin = any(
-        getattr(ur.role, "code", None) == "admin" for ur in profile.roles
+        getattr(ur.role, "name", None) == "admin" for ur in profile.roles
     )
     if not is_admin:
         raise HTTPException(
