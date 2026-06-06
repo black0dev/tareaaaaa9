@@ -55,24 +55,22 @@ async def _reingress_stock(
         if variant is None:
             continue
 
-        previous_stock = variant.stock
+        previous_stock = variant.stock_quantity
         new_stock = previous_stock + item.quantity
 
         await db.execute(
             update(ProductVariant)
             .where(ProductVariant.id == item.product_variant_id)
-            .values(stock=ProductVariant.stock + item.quantity)
+            .values(stock_quantity=ProductVariant.stock_quantity + item.quantity)
         )
 
         adjustment = StockAdjustment(
-            product_variant_id=item.product_variant_id,
-            adjustment=item.quantity,
-            previous_stock=previous_stock,
-            new_stock=new_stock,
-            reason="devolucion_cancelacion",
-            reference_type="order",
-            reference_id=order_id,
-            created_by=changed_by,
+            variant_id=item.product_variant_id,
+            delta_quantity=item.quantity,
+            previous_stock_quantity=previous_stock,
+            new_stock_quantity=new_stock,
+            reason_type="devolucion_cancelacion",
+            created_by_profile_id=changed_by,
         )
         db.add(adjustment)
 

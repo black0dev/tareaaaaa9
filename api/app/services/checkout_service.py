@@ -77,12 +77,13 @@ async def _fetch_and_validate_variants(
                 {"variant_id": vid},
             )
 
-        if variant.stock < line["quantity"]:
+        variant_label = f"{variant.size} / {variant.color}"
+        if variant.stock_quantity < line["quantity"]:
             raise CheckoutError(
                 "stock_insufficient",
-                f"No hay stock suficiente para la variante '{variant.name}'. "
-                f"Solicitado: {line['quantity']}, disponible: {variant.stock}.",
-                {"variant_id": vid, "requested": line["quantity"], "available": variant.stock},
+                f"No hay stock suficiente para la variante '{variant_label}'. "
+                f"Solicitado: {line['quantity']}, disponible: {variant.stock_quantity}.",
+                {"variant_id": vid, "requested": line["quantity"], "available": variant.stock_quantity},
             )
 
         validated.append(line)
@@ -125,12 +126,13 @@ async def create_order(
 
     for line in lines:
         variant, product = variant_map[line["product_variant_id"]]
-        db_price = product.base_price + variant.price_adjustment
+        variant_label = f"{variant.size} / {variant.color}"
+        db_price = variant.price_amount
 
         if line["unit_price"] != db_price:
             price_changed_errors.append({
                 "variant_id": variant.id,
-                "variant_name": variant.name,
+                "variant_name": variant_label,
                 "sent_price": line["unit_price"],
                 "actual_price": db_price,
             })
@@ -141,7 +143,7 @@ async def create_order(
         order_items_data.append({
             "product_variant_id": variant.id,
             "product_name": product.name,
-            "variant_name": variant.name,
+            "variant_name": variant_label,
             "sku": variant.sku,
             "quantity": line["quantity"],
             "unit_price": db_price,
@@ -182,22 +184,21 @@ async def create_order(
         variant_id = line["product_variant_id"]
         variant, _ = variant_map[variant_id]
         qty = line["quantity"]
-        previous_stock = variant.stock
+        previous_stock = variant.stock_quantity
 
         await db.execute(
             update(ProductVariant)
             .where(ProductVariant.id == variant_id)
-            .values(stock=ProductVariant.stock - qty)
+            .values(stock_quantity=ProductVariant.stock_quantity - qty)
         )
 
         adjustment = StockAdjustment(
-            product_variant_id=variant_id,
-            adjustment=-qty,
-            previous_stock=previous_stock,
-            new_stock=previous_stock - qty,
-            reason="creacion_pedido",
-            reference_type="order",
-            reference_id=order.id,
+            variant_id=variant_id,
+            delta_quantity=-qty,
+            previous_stock_quantity=previous_stock,
+            new_stock_quantity=previous_stock - qty,
+            reason_type="creacion_pedido",
+            created_by_profile_id=None,
         )
         db.add(adjustment)
 

@@ -1,10 +1,13 @@
+import os
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.exceptions import AppError
-from app.routers import admin_auth, admin_orders, admin_stock, catalog, checkout, health
+from app.routers import admin_auth, admin_orders, admin_products, admin_stock, catalog, checkout, health
 
 app = FastAPI(
     title="Tienda de Camisetas MVP API",
@@ -28,7 +31,12 @@ app.include_router(catalog.router, prefix="/api/v1")
 app.include_router(checkout.router, prefix="/api/v1")
 app.include_router(admin_auth.router, prefix="/api/v1")
 app.include_router(admin_orders.router, prefix="/api/v1")
+app.include_router(admin_products.router, prefix="/api/v1")
 app.include_router(admin_stock.router, prefix="/api/v1")
+
+uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=uploads_dir), name="static")
 
 HTTP_STATUS_TO_CODE: dict[int, str] = {
     400: "bad_request",
