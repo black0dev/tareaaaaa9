@@ -68,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json();
-        const { access_token, user: userData } = data;
+        // Backend wraps response in {ok: true, data: {...}}
+        const responseData = data.data;
+        const { access_token, user: userData } = responseData;
 
         localStorage.setItem("admin_token", access_token);
         localStorage.setItem("admin_user", JSON.stringify(userData));

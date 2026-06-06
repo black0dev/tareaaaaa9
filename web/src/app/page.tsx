@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Card, { CardContent } from "@/components/ui/Card";
+import { supabase } from "@/lib/supabase";
 
 interface Product {
   id: string;
@@ -14,25 +15,17 @@ interface Product {
 
 async function getFeaturedProducts(): Promise<Product[]> {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const { data, error } = await supabase
+      .from("v_active_products")
+      .select("*")
+      .limit(4);
 
-    const response = await fetch(`${apiUrl}/products`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    if (error) {
+      console.error("Failed to fetch featured products:", error.message);
+      return [];
     }
 
-    const data = await response.json();
-
-    // Handle both array responses and paginated responses
-    const products = Array.isArray(data) ? data : data.products || data.items || [];
-
-    // Only show active products, limit to 4 featured
-    return (products as Product[])
-      .filter((p) => p.is_active !== false)
-      .slice(0, 4);
+    return (data as Product[]) || [];
   } catch (error) {
     console.error("Failed to fetch featured products:", error);
     return [];
