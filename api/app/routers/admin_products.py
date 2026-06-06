@@ -79,7 +79,7 @@ async def admin_list_products(
     where_clauses = []
 
     if search:
-        where_clauses.append(Product.name.ilike(f"%{search}%"))
+        where_clauses.append(Product.name.like(f"%{search}%"))
     if is_active is not None:
         where_clauses.append(Product.is_active == is_active)
 

@@ -7,15 +7,14 @@ Tienda online de camisetas con catálogo, carrito de compras como invitado, chec
 | Capa          | Tecnología              |
 |---------------|-------------------------|
 | Frontend      | Next.js 16 + Tailwind CSS |
-| Backend       | FastAPI (Python 3.11)     |
-| Base de datos | PostgreSQL 16             |
+| Backend       | FastAPI (Python 3.11+)    |
+| Base de datos | SQLite                    |
 | Auth          | JWT + bcrypt              |
-| Infraestructura | Docker + Docker Compose |
 
 ## Requisitos
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- [Node.js 20+](https://nodejs.org/) (para desarrollo local del frontend)
+- [Python 3.11+](https://www.python.org/downloads/)
+- [Node.js 20+](https://nodejs.org/)
 - [Git](https://git-scm.com/)
 
 ## Instalación
@@ -27,33 +26,32 @@ git clone https://github.com/black0dev/tareaaaaa9.git
 cd tareaaaaa9
 ```
 
-### 2. Configurar variables de entorno
+### 2. Backend (FastAPI + SQLite)
 
 ```bash
-# Copiar archivo de ejemplo
-copy .env.example .env
+cd api
+
+# Instalar dependencias
+py -m pip install -r requirements.txt
+
+# Inicializar base de datos (crea tablas y datos de prueba)
+py init_db.py
+
+# Iniciar servidor
+py -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-> ⚠️ **Importante**: Cambia `SECRET_KEY` en `.env` por un valor seguro en producción.
+### 3. Frontend (Next.js)
 
-### 3. Levantar los servicios
+En otra terminal:
 
 ```bash
-# Iniciar base de datos
-docker compose up -d db
-
-# Ejecutar migraciones (Windows PowerShell)
-Get-Content api/migrations/001_enums.sql -Raw | docker exec -i tienda_mvp_db psql -U postgres -d tienda_mvp
-Get-Content api/migrations/002_tables.sql -Raw | docker exec -i tienda_mvp_db psql -U postgres -d tienda_mvp
-Get-Content api/migrations/003_views.sql -Raw | docker exec -i tienda_mvp_db psql -U postgres -d tienda_mvp
-Get-Content api/migrations/004_seed.sql -Raw | docker exec -i tienda_mvp_db psql -U postgres -d tienda_mvp
-
-# Construir y levantar backend
-docker compose up -d --build api
-
-# Instalar dependencias del frontend
 cd web
+
+# Instalar dependencias
 npm install
+
+# Iniciar servidor de desarrollo
 npm run dev
 ```
 
@@ -80,20 +78,18 @@ npm run dev
 ```
 ├── api/                     # Backend FastAPI
 │   ├── app/
-│   │   ├── models/          # Modelos SQLAlchemy
+│   │   ├── models/          # Modelos SQLAlchemy (SQLite)
 │   │   ├── routers/         # Endpoints REST
 │   │   ├── schemas/         # Esquemas Pydantic
 │   │   └── services/        # Lógica de negocio
-│   └── migrations/          # Migraciones SQL
+│   ├── init_db.py           # Inicialización de BD y seed
+│   └── tienda.db            # Archivo SQLite (autogenerado)
 ├── web/                     # Frontend Next.js
 │   └── src/
 │       ├── app/             # Páginas (App Router)
 │       ├── components/      # Componentes reutilizables
 │       └── lib/             # Utilidades y contextos
-├── scripts/                 # Scripts de utilidad
-├── docs/                    # Documentación
-├── docker-compose.yml       # Orquestación de servicios
-└── .env.example             # Plantilla de variables de entorno
+└── README.md
 ```
 
 ## Endpoints principales
@@ -113,7 +109,7 @@ npm run dev
 |--------|------|-------------|
 | POST | `/api/v1/admin/auth/login` | Iniciar sesión |
 | GET/POST/PUT/DELETE | `/api/v1/admin/products` | CRUD productos |
-| POST | `/api/v1/admin/products/{id}/variants` | Crear variante |
+| GET/POST | `/api/v1/admin/products/{id}/variants` | Gestionar variantes |
 | POST | `/api/v1/admin/products/{id}/images` | Subir imagen |
 | GET | `/api/v1/admin/orders` | Listar pedidos |
 | GET | `/api/v1/admin/orders/{id}` | Detalle de pedido |
@@ -121,23 +117,24 @@ npm run dev
 | POST | `/api/v1/admin/orders/{id}/payments/manual-confirmation` | Confirmar pago |
 | POST | `/api/v1/admin/stock/adjustments` | Ajustar stock |
 
-## Comandos útiles
+## Solución de problemas
 
 ```bash
-# Ver logs
-docker compose logs -f api
-docker compose logs -f db
+# Si hay errores de BD, reiniciar desde cero:
+cd api
+del tienda.db
+py init_db.py
 
-# Reiniciar servicios
-docker compose restart api
+# Verificar que la BD tiene datos:
+py test_db.py
 
-# Detener todo
-docker compose down
-
-# Detener y borrar datos
-docker compose down -v
+# Limpiar caché de Next.js:
+cd web
+del /s /q .next
+npm run dev
 ```
 
 ## Licencia
 
 Este proyecto es para uso educativo y demostración.
+

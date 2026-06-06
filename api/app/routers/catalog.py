@@ -61,7 +61,7 @@ async def list_products(
         where_clauses.append(Product.category_id.in_(sub))
 
     if search:
-        where_clauses.append(Product.name.ilike(f"%{search}%"))
+        where_clauses.append(Product.name.like(f"%{search}%"))
 
     count_q = select(func.count(Product.id)).where(*where_clauses)
     total = (await db.execute(count_q)).scalar() or 0

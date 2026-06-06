@@ -7,6 +7,11 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.exceptions import AppError
+from app.database import engine
+from app.database import Base
+
+# Importar modelos para que SQLAlchemy los registre
+import app.models  # noqa: F401
 from app.routers import admin_auth, admin_orders, admin_products, admin_stock, catalog, checkout, config, health
 
 app = FastAPI(
@@ -25,6 +30,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auto-crear tablas SQLite al iniciar
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(catalog.router, prefix="/api/v1")
