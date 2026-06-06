@@ -13,6 +13,7 @@ from app.models import (
     ProductVariant,
     StockAdjustment,
 )
+from app.services.notification_service import send_order_notification
 
 
 VALID_STATES = {
@@ -209,5 +210,16 @@ async def create_order(
         notes="Pedido creado",
     )
     db.add(status_history)
+
+    await send_order_notification({
+        "order_id": order.id,
+        "order_number": order.order_number,
+        "customer_email": order.customer_email,
+        "customer_name": order.customer_name,
+        "customer_phone": order.customer_phone,
+        "total_amount": order.total_amount,
+        "status": order.status,
+        "fulfillment_type": order.fulfillment_type,
+    })
 
     return order

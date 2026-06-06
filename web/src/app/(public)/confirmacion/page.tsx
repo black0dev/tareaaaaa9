@@ -5,6 +5,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Card, { CardContent, CardHeader } from "@/components/ui/Card";
 import { formatPrice } from "@/lib/format";
+import { STORE_CONFIG } from "@/lib/config";
 
 interface LastOrder {
   order_number: string;
@@ -178,33 +179,56 @@ export default function ConfirmacionPage() {
             </h2>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-gray-700">
-            <p>
-              Realiza la transferencia a la siguiente cuenta para completar tu
-              pedido:
-            </p>
-            <div className="bg-gray-50 rounded-lg p-3 space-y-1">
-              <p>
-                <span className="font-medium">Banco:</span> BCP
-              </p>
-              <p>
-                <span className="font-medium">Cuenta:</span> 194-1234567-0-89
-              </p>
-              <p>
-                <span className="font-medium">CCI:</span> 00219411234567018999
-              </p>
-              <p>
-                <span className="font-medium">Titular:</span> Tienda Camisetas
-                SAC
-              </p>
-              <p>
-                <span className="font-medium">Monto exacto:</span>{" "}
-                {formatPrice(order.total_amount)}
-              </p>
-            </div>
-            <p className="text-gray-500">
-              Una vez realizada la transferencia, envianos el comprobante al
-              WhatsApp o correo y procesaremos tu pedido.
-            </p>
+            {STORE_CONFIG.payment.method === "manual" ? (
+              <>
+                <p>
+                  Realiza tu transferencia a la cuenta:
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                  <p>
+                    <span className="font-medium">Banco:</span>{" "}
+                    {STORE_CONFIG.payment.bankName}
+                  </p>
+                  <p>
+                    <span className="font-medium">Cuenta:</span>{" "}
+                    {STORE_CONFIG.payment.accountNumber}
+                  </p>
+                  <p>
+                    <span className="font-medium">Titular:</span>{" "}
+                    {STORE_CONFIG.payment.accountHolder}
+                  </p>
+                  <p>
+                    <span className="font-medium">Monto exacto:</span>{" "}
+                    {formatPrice(order.total_amount)}
+                  </p>
+                </div>
+                <p>
+                  Envía el comprobante a:{" "}
+                  <a
+                    href={`mailto:${STORE_CONFIG.payment.contactEmail}`}
+                    className="text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    {STORE_CONFIG.payment.contactEmail}
+                  </a>{" "}
+                  o al WhatsApp{" "}
+                  <a
+                    href={`https://wa.me/${STORE_CONFIG.payment.contactPhone.replace(/\D/g, "")}`}
+                    className="text-indigo-600 hover:text-indigo-800 underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {STORE_CONFIG.payment.contactPhone}
+                  </a>
+                </p>
+                <p className="text-gray-500">
+                  Tu pedido será confirmado cuando validemos el pago.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>Pago simulado - tu pedido está confirmado.</p>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
@@ -222,8 +246,7 @@ export default function ConfirmacionPage() {
           {order.fulfillment_type === "shipping" ? (
             <div className="space-y-2">
               <p>
-                Tu pedido será enviado a la dirección que proporcionaste una vez
-                que confirmemos el pago.
+                Tu pedido será enviado a la dirección proporcionada.
               </p>
               <p>
                 El tiempo estimado de entrega es de{" "}
@@ -238,8 +261,7 @@ export default function ConfirmacionPage() {
           ) : (
             <div className="space-y-2">
               <p>
-                Puedes recoger tu pedido en nuestra tienda una vez que
-                confirmemos el pago.
+                Te esperamos en nuestra tienda para recoger tu pedido.
               </p>
               <p>
                 <span className="font-medium">Dirección:</span> Av. Comercio
