@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Arquitectura del Sistema - Tarea 9 SENATI</title>
+<style>
+  @page { size: A4; margin: 2cm; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px;
+    background: #fff;
+  }
+  .portada {
+    text-align: center;
+    padding: 60px 40px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 30%, #7dd3fc 60%, #ffffff 100%);
+    border-radius: 16px;
+    margin-bottom: 40px;
+    border: 2px solid #7dd3fc;
+  }
+  .portada h1 { font-size: 28px; color: #0369a1; margin-bottom: 10px; }
+  .portada h2 { font-size: 22px; color: #0284c7; font-weight: 400; margin-bottom: 30px; }
+  .portada .info { color: #0c4a6e; font-size: 15px; line-height: 2.2; }
+  .portada .info strong { color: #0369a1; }
+  h2 {
+    color: #0369a1;
+    border-left: 5px solid #38bdf8;
+    padding-left: 14px;
+    margin-top: 40px;
+    font-size: 20px;
+  }
+  h3 { color: #0284c7; margin-top: 25px; font-size: 16px; }
+  .card {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 16px 0;
+  }
+  .card-title {
+    font-weight: 700;
+    color: #0369a1;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  th {
+    background: #0284c7;
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #bae6fd;
+    background: #f8fafc;
+  }
+  tr:nth-child(even) td { background: #f0f9ff; }
+  .diagram {
+    background: #ffffff;
+    border: 2px dashed #7dd3fc;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    margin: 20px 0;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 2;
+    color: #0c4a6e;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px;
+  }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-cyan { background: #cffafe; color: #155e75; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  code {
+    background: #e0f2fe;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #0369a1;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 2px solid #bae6fd;
+    color: #64748b;
+    font-size: 13px;
+  }
+  ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ PORTADA ═══════════ -->
+<div class="portada">
+  <h1>📐 Arquitectura del Sistema</h1>
+  <h2>Sistema de Tienda Online - Ecommerce MVP</h2>
+  <div class="info">
+    <strong>Curso:</strong> Desarrollo de Sistemas Web<br>
+    <strong>Tarea:</strong> Nº 9 - Documentación de Arquitectura<br>
+    <strong>Alumno:</strong> Jorge Dante Lucano Tello<br>
+    <strong>Profesor:</strong> Iván Calle<br>
+    <strong>Institución:</strong> SENATI<br>
+    <strong>Fecha:</strong> Junio 2026
+  </div>
+</div>
+
+<!-- ═══════════ INTRODUCCIÓN ═══════════ -->
+<h2>1. Introducción</h2>
+<p>
+  Este documento describe la <strong>arquitectura técnica</strong> del sistema de tienda online desarrollado como proyecto de la Tarea 9. 
+  El sistema permite la venta de productos (camisetas) mediante un catálogo público, carrito de compras como invitado, checkout transaccional 
+  y un panel administrativo para la gestión de productos, stock y pedidos.
+</p>
+<p>
+  La arquitectura sigue el patrón <strong>monolito modular</strong> con separación clara entre frontend y backend, priorizando simplicidad, 
+  rápida salida al mercado y facilidad de mantenimiento.
+</p>
+
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title">🎯 Objetivo</div>
+    MVP funcional para venta online con catálogo, carrito, checkout y administración.
+  </div>
+  <div class="card">
+    <div class="card-title">🏗️ Estilo</div>
+    Monolito modular con separación Frontend / Backend / Base de Datos.
+  </div>
+  <div class="card">
+    <div class="card-title">📱 Enfoque</div>
+    Mobile-first, compra como invitado, panel admin protegido con JWT.
+  </div>
+</div>
+
+<!-- ═══════════ STACK TECNOLÓGICO ═══════════ -->
+<h2>2. Stack Tecnológico</h2>
+
+<table>
+  <tr><th>Capa</th><th>Tecnología</th><th>Justificación</th></tr>
+  <tr><td><strong>Frontend</strong></td><td>Next.js 16 + React + Tailwind CSS</td><td>Renderizado híbrido (SSR/CSR), SEO básico y excelente DX</td></tr>
+  <tr><td><strong>Backend</strong></td><td>FastAPI (Python 3.13)</td><td>Validaciones transaccionales, tipado fuerte y documentación automática con Swagger</td></tr>
+  <tr><td><strong>Base de Datos</strong></td><td>SQLite (via SQLAlchemy)</td><td>Sin necesidad de servidor externo, ideal para MVP y desarrollo local</td></tr>
+  <tr><td><strong>ORM</strong></td><td>SQLAlchemy 2.0 (async)</td><td>Mapeo objeto-relacional con soporte asíncrono nativo</td></tr>
+  <tr><td><strong>Autenticación</strong></td><td>JWT + bcrypt</td><td>Tokens sin estado, contraseñas hasheadas con algoritmo seguro</td></tr>
+  <tr><td><strong>Validación</strong></td><td>Pydantic v2</td><td>Validación de schemas en tiempo de ejecución</td></tr>
+  <tr><td><strong>Estilos</strong></td><td>Tailwind CSS</td><td>Utilidades atómicas, diseño responsive sin escribir CSS manual</td></tr>
+</table>
+
+<!-- ═══════════ ARQUITECTURA ═══════════ -->
+<h2>3. Diagrama de Arquitectura</h2>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                      🌐 CLIENTE (Navegador)                  │
+│                   http://localhost:3000                      │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+┌──────────────────┐    ┌──────────────────┐
+│   FRONTEND       │    │    BACKEND       │
+│   Next.js 16     │───▶│    FastAPI        │
+│   Puerto :3000   │    │    Puerto :8000   │
+│                  │    │                  │
+│ ▸ Catálogo       │    │ ▸ /api/v1/       │
+│ ▸ Carrito         │    │   products      │
+│ ▸ Checkout       │    │   categories     │
+│ ▸ Panel Admin    │    │   checkout       │
+│ ▸ AuthGuard      │    │   admin/*        │
+└──────────────────┘    └────────┬─────────┘
+                                 │
+                                 ▼
+                      ┌──────────────────┐
+                      │   BASE DE DATOS  │
+                      │   SQLite         │
+                      │   tienda.db      │
+                      │                  │
+                      │ ▸ products       │
+                      │ ▸ variants       │
+                      │ ▸ orders         │
+                      │ ▸ payments       │
+                      │ ▸ profiles       │
+                      │ ▸ 10+ tablas     │
+                      └──────────────────┘
+</div>
+
+<!-- ═══════════ ZONAS ═══════════ -->
+<h2>4. Zonas del Sistema</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">🟢 Zona Pública</div>
+    <ul>
+      <li>Catálogo de productos activos</li>
+      <li>Detalle con variantes (talla, color)</li>
+      <li>Carrito de compras (localStorage)</li>
+      <li>Checkout como invitado</li>
+      <li>Confirmación de pedido</li>
+      <li><strong>Sin autenticación requerida</strong></li>
+    </ul>
+    <span class="badge badge-green">Acceso libre</span>
+  </div>
+  <div class="card">
+    <div class="card-title">🔵 Zona Administrativa</div>
+    <ul>
+      <li>Login con JWT</li>
+      <li>Dashboard con KPIs</li>
+      <li>CRUD de productos y variantes</li>
+      <li>Gestión de imágenes</li>
+      <li>Ajuste manual de stock</li>
+      <li>Listado y detalle de pedidos</li>
+      <li>Cambio de estado y pagos</li>
+      <li><strong>Requiere rol "admin"</strong></li>
+    </ul>
+    <span class="badge badge-blue">JWT requerido</span>
+  </div>
+</div>
+
+<!-- ═══════════ BASE DE DATOS ═══════════ -->
+<h2>5. Modelo de Base de Datos</h2>
+
+<p>El sistema utiliza <strong>14 tablas</strong> organizadas en 3 módulos principales:</p>
+
+<h3>5.1 Catálogo</h3>
+<table>
+  <tr><th>Tabla</th><th>Descripción</th></tr>
+  <tr><td><code>categories</code></td><td>Categorías de productos (slug único, soft delete)</td></tr>
+  <tr><td><code>products</code></td><td>Producto padre: nombre, slug, descripción, material, marca</td></tr>
+  <tr><td><code>product_variants</code></td><td>Unidad vendible: talla, color, SKU, precio, stock</td></tr>
+  <tr><td><code>product_images</code></td><td>Imagen principal y galería por producto</td></tr>
+</table>
+
+<h3>5.2 Clientes y Acceso</h3>
+<table>
+  <tr><th>Tabla</th><th>Descripción</th></tr>
+  <tr><td><code>profiles</code></td><td>Usuarios del sistema con email y contraseña</td></tr>
+  <tr><td><code>roles</code></td><td>Roles: admin, customer</td></tr>
+  <tr><td><code>user_roles</code></td><td>Asignación perfil ↔ rol</td></tr>
+  <tr><td><code>customer_addresses</code></td><td>Direcciones guardadas (preparado futuro)</td></tr>
+</table>
+
+<h3>5.3 Operación Comercial</h3>
+<table>
+  <tr><th>Tabla</th><th>Descripción</th></tr>
+  <tr><td><code>orders</code></td><td>Cabecera del pedido con datos del cliente, totales y estado</td></tr>
+  <tr><td><code>order_items</code></td><td>Líneas del pedido (snapshot: precio, variante, cantidad)</td></tr>
+  <tr><td><code>payments</code></td><td>Registro de pago (manual o simulado)</td></tr>
+  <tr><td><code>payment_events</code></td><td>Historial de eventos de pago</td></tr>
+  <tr><td><code>stock_adjustments</code></td><td>Bitácora de ajustes de stock (creación, cancelación, manual)</td></tr>
+  <tr><td><code>order_status_history</code></td><td>Historial de transiciones de estado del pedido</td></tr>
+</table>
+
+<h3>5.4 Máquina de Estados del Pedido</h3>
+<div class="diagram">
+pendiente_pago ──▶ pagado ──▶ en_preparacion ──▶ listo_para_entrega ──▶ entregado
+       │               │
+       ▼               ▼
+   cancelado      cancelado / reembolsado
+</div>
+
+<!-- ═══════════ API ═══════════ -->
+<h2>6. API REST - Endpoints</h2>
+
+<p>Base URL: <code>http://localhost:8000/api/v1</code> | Formato: JSON | Auth: JWT Bearer Token</p>
+
+<h3>6.1 Endpoints Públicos</h3>
+<table>
+  <tr><th>Método</th><th>Ruta</th><th>Descripción</th></tr>
+  <tr><td>GET</td><td><code>/health</code></td><td>Verificación de disponibilidad del servicio</td></tr>
+  <tr><td>GET</td><td><code>/products</code></td><td>Listado paginado con búsqueda y filtros</td></tr>
+  <tr><td>GET</td><td><code>/products/{slug}</code></td><td>Detalle completo con variantes e imágenes</td></tr>
+  <tr><td>GET</td><td><code>/categories</code></td><td>Lista de categorías activas</td></tr>
+  <tr><td>GET</td><td><code>/config</code></td><td>Configuración pública (pago, envío)</td></tr>
+  <tr><td>POST</td><td><code>/checkout/orders</code></td><td>Crear pedido como invitado</td></tr>
+</table>
+
+<h3>6.2 Endpoints Admin (JWT requerido)</h3>
+<table>
+  <tr><th>Método</th><th>Ruta</th><th>Descripción</th></tr>
+  <tr><td>POST</td><td><code>/admin/auth/login</code></td><td>Iniciar sesión</td></tr>
+  <tr><td>GET/POST/PUT/DELETE</td><td><code>/admin/products</code></td><td>CRUD de productos</td></tr>
+  <tr><td>POST</td><td><code>/admin/products/{id}/variants</code></td><td>Crear variante</td></tr>
+  <tr><td>POST</td><td><code>/admin/products/{id}/images</code></td><td>Subir imagen</td></tr>
+  <tr><td>GET</td><td><code>/admin/orders</code></td><td>Listar pedidos</td></tr>
+  <tr><td>GET</td><td><code>/admin/orders/{id}</code></td><td>Detalle de pedido</td></tr>
+  <tr><td>POST</td><td><code>/admin/orders/{id}/status-transitions</code></td><td>Cambiar estado</td></tr>
+  <tr><td>POST</td><td><code>/admin/orders/{id}/payments/manual-confirmation</code></td><td>Confirmar pago</td></tr>
+  <tr><td>POST</td><td><code>/admin/stock/adjustments</code></td><td>Ajustar stock manualmente</td></tr>
+</table>
+
+<!-- ═══════════ FRONTEND ═══════════ -->
+<h2>7. Frontend - Componentes Principales</h2>
+
+<h3>7.1 Páginas</h3>
+<table>
+  <tr><th>Ruta</th><th>Componente</th><th>Descripción</th></tr>
+  <tr><td><code>/</code></td><td>HomePage</td><td>Hero, categorías, productos destacados</td></tr>
+  <tr><td><code>/catalogo</code></td><td>CatalogPage</td><td>Búsqueda, filtro, grid responsive</td></tr>
+  <tr><td><code>/producto/[slug]</code></td><td>ProductDetailPage</td><td>Galería, variantes, CTA carrito</td></tr>
+  <tr><td><code>/carrito</code></td><td>CartPage</td><td>Lista items, cantidades, resumen</td></tr>
+  <tr><td><code>/checkout</code></td><td>CheckoutPage</td><td>Formulario, envío/recojo, pago</td></tr>
+  <tr><td><code>/confirmacion</code></td><td>ConfirmationPage</td><td>Nº pedido, instrucciones</td></tr>
+  <tr><td><code>/admin/login</code></td><td>AdminLogin</td><td>Formulario email + contraseña</td></tr>
+  <tr><td><code>/admin</code></td><td>AdminDashboard</td><td>KPIs: productos, pedidos, stock bajo</td></tr>
+  <tr><td><code>/admin/productos</code></td><td>AdminProducts</td><td>Tabla CRUD + formulario modal</td></tr>
+  <tr><td><code>/admin/pedidos</code></td><td>AdminOrders</td><td>Listado, filtro, detalle, transiciones</td></tr>
+</table>
+
+<h3>7.2 Componentes Reutilizables</h3>
+<div class="grid-3">
+  <div class="card"><div class="card-title">🛡️ AuthGuard</div>Protege rutas /admin/*, redirige a login si no hay sesión</div>
+  <div class="card"><div class="card-title">🛒 CartContext</div>Estado global del carrito, persistencia en localStorage</div>
+  <div class="card"><div class="card-title">👕 ProductCard</div>Tarjeta con imagen, precio formateado, badge de stock</div>
+  <div class="card"><div class="card-title">🎨 VariantSelector</div>Botones de talla/color con filtro cruzado</div>
+  <div class="card"><div class="card-title">🖼️ ImageGallery</div>Imagen principal + thumbnails clickeables</div>
+  <div class="card"><div class="card-title">📊 ProductForm</div>Modal CRUD con variantes e imágenes</div>
+</div>
+
+<!-- ═══════════ SEGURIDAD ═══════════ -->
+<h2>8. Seguridad</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">🔐 Autenticación</div>
+    <ul>
+      <li>JWT con algoritmo <strong>HS256</strong></li>
+      <li>Contraseñas hasheadas con <strong>bcrypt</strong></li>
+      <li>Token expira a las 8 horas</li>
+      <li>Rutas admin protegidas con <code>get_current_admin</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title">🛡️ Validaciones</div>
+    <ul>
+      <li>Precios recalculados en backend (nunca del frontend)</li>
+      <li>Stock validado atómicamente (sin negativos)</li>
+      <li>Payloads validados con Pydantic</li>
+      <li>CORS restringido a <code>localhost:3000</code></li>
+      <li>Errores sin stack traces en producción</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════ FLUJO ═══════════ -->
+<h2>9. Flujo Principal de Compra</h2>
+
+<div class="diagram">
+1. Catálogo ──▶ 2. Detalle Producto ──▶ 3. Seleccionar Variante ──▶ 4. Agregar al Carrito
+                                                                              │
+                                                                              ▼
+8. Confirmación ◀── 7. Backend valida ──▶ 6. POST /checkout/orders ◀── 5. Checkout
+                    stock + precio                            
+</div>
+
+<!-- ═══════════ CONCLUSIÓN ═══════════ -->
+<h2>10. Conclusión</h2>
+
+<div class="card">
+  <p>
+    La arquitectura implementada cumple con los requisitos de un <strong>MVP funcional</strong> para comercio electrónico:
+  </p>
+  <ul>
+    <li>✅ Separación clara entre zona pública y administrativa</li>
+    <li>✅ Backend con validaciones transaccionales de stock y precio</li>
+    <li>✅ Frontend mobile-first con componentes reutilizables</li>
+    <li>✅ Persistencia en SQLite sin dependencia de servidores externos</li>
+    <li>✅ Autenticación segura con JWT y contraseñas hasheadas</li>
+    <li>✅ Trazabilidad completa de pedidos, pagos y stock</li>
+    <li>✅ Preparado para evolucionar a PostgreSQL y pasarela de pago real</li>
+  </ul>
+  <p style="margin-top: 16px;">
+    <strong>Tecnologías utilizadas:</strong>
+    <span class="badge badge-blue">Next.js 16</span>
+    <span class="badge badge-cyan">FastAPI</span>
+    <span class="badge badge-green">SQLite</span>
+    <span class="badge badge-blue">Tailwind CSS</span>
+    <span class="badge badge-cyan">SQLAlchemy</span>
+    <span class="badge badge-green">JWT</span>
+  </p>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<div class="footer">
+  <strong>Jorge Dante Lucano Tello</strong> — Tarea 9 — SENATI — Junio 2026<br>
+  Profesor: Iván Calle | Curso: Desarrollo de Sistemas Web
+</div>
+
+</body>
+</html>
