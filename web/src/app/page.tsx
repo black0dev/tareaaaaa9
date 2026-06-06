@@ -1,58 +1,168 @@
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import Card, { CardContent } from "@/components/ui/Card";
 import { supabase } from "@/lib/supabase";
+import { formatPrice, formatStock, STOCK_VARIANT_STYLES } from "@/lib/format";
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
 
 interface Product {
   id: string;
   name: string;
   slug: string;
   description: string;
-  price: number;
-  image_url: string | null;
-  is_active: boolean;
+  category_id: string | null;
+  category_name: string | null;
+  category_slug: string | null;
+  material: string | null;
+  brand: string | null;
 }
+
+interface ProductVariant {
+  id: string;
+  product_id: string;
+  stock_quantity: number;
+  price_amount: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface ProductImage {
+  product_id: string;
+  image_url: string;
+}
+
+// ─── Queries ─────────────────────────────────────────────────────────────────
 
 async function getFeaturedProducts(): Promise<Product[]> {
-  try {
-    const { data, error } = await supabase
-      .from("v_active_products")
-      .select("*")
-      .limit(4);
+  const { data, error } = await supabase
+    .from("v_active_products")
+    .select("*")
+    .limit(4);
 
-    if (error) {
-      console.error("Failed to fetch featured products:", error.message);
-      return [];
-    }
-
-    return (data as Product[]) || [];
-  } catch (error) {
-    console.error("Failed to fetch featured products:", error);
+  if (error) {
+    console.error("Failed to fetch featured products:", error.message);
     return [];
   }
+  return (data as Product[]) || [];
 }
 
+async function getProductsStock(
+  productIds: string[]
+): Promise<Map<string, { total_stock: number; min_price: number; primary_image_url: string | null }>> {
+  if (productIds.length === 0) return new Map();
+
+  // Obtener stock y precio minimo de variantes
+  const { data: variants, error: vError } = await supabase
+    .from("v_active_variants")
+    .select("product_id, stock_quantity, price_amount")
+    .in("product_id", productIds);
+
+  if (vError) {
+    console.error("Failed to fetch variants:", vError.message);
+    return new Map();
+  }
+
+  const typedVariants = variants as ProductVariant[] | null;
+
+  // Agregar stock por producto
+  const stockMap = new Map<string, { total_stock: number; min_price: number }>();
+  for (const v of typedVariants || []) {
+    const existing = stockMap.get(v.product_id);
+    if (existing) {
+      existing.total_stock += v.stock_quantity;
+      if (v.price_amount < existing.min_price) {
+        existing.min_price = v.price_amount;
+      }
+    } else {
+      stockMap.set(v.product_id, {
+        total_stock: v.stock_quantity,
+        min_price: v.price_amount,
+      });
+    }
+  }
+
+  // Obtener imagenes primarias
+  const { data: images, error: iError } = await supabase
+    .from("v_product_gallery")
+    .select("product_id, image_url")
+    .in("product_id", productIds)
+    .eq("is_primary", true);
+
+  if (iError) {
+    console.error("Failed to fetch images:", iError.message);
+  }
+
+  const imageMap = new Map<string, string>();
+  for (const img of (images as ProductImage[]) || []) {
+    if (!imageMap.has(img.product_id)) {
+      imageMap.set(img.product_id, img.image_url);
+    }
+  }
+
+  // Combinar
+  const result = new Map<string, { total_stock: number; min_price: number; primary_image_url: string | null }>();
+  for (const id of productIds) {
+    const stock = stockMap.get(id);
+    result.set(id, {
+      total_stock: stock?.total_stock ?? 0,
+      min_price: stock?.min_price ?? 0,
+      primary_image_url: imageMap.get(id) ?? null,
+    });
+  }
+
+  return result;
+}
+
+async function getCategories(): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.error("Failed to fetch categories:", error.message);
+    return [];
+  }
+  return (data as Category[]) || [];
+}
+
+// ─── Página ──────────────────────────────────────────────────────────────────
+
 export default async function HomePage() {
-  const products = await getFeaturedProducts();
+  const [products, categories] = await Promise.all([
+    getFeaturedProducts(),
+    getCategories(),
+  ]);
+
+  const productIds = products.map((p) => p.id);
+  const productData = await getProductsStock(productIds);
 
   return (
     <div>
-      {/* Hero Section */}
+      {/* ─── Hero Section ─── */}
       <section className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 md:py-32">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
               Camisetas con
               <span className="block text-indigo-200">diseños únicos</span>
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-indigo-100 leading-relaxed">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-indigo-100 leading-relaxed">
               Descubre nuestra colección de camisetas premium con los mejores
               diseños. Calidad excepcional, envíos rápidos y precios
               increíbles.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Link href="/catalogo">
-                <Button size="lg" className="bg-white text-indigo-700 hover:bg-indigo-50 focus:ring-white">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-white text-indigo-700 hover:bg-indigo-50 focus:ring-white"
+                >
                   Ver catálogo
                 </Button>
               </Link>
@@ -60,7 +170,7 @@ export default async function HomePage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/30 text-white hover:bg-white/10 focus:ring-white"
+                  className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 focus:ring-white"
                 >
                   Productos destacados
                 </Button>
@@ -70,22 +180,61 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <section id="productos-destacados" className="py-16 md:py-24 bg-gray-50">
+      {/* ─── Categories Section ─── */}
+      {categories.length > 0 && (
+        <section className="py-12 sm:py-16 bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8">
+              Categorías
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/catalogo?categoria=${category.slug}`}
+                  className="group flex flex-col items-center p-4 sm:p-6 rounded-xl border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                >
+                  <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-indigo-200 transition-colors">
+                    <svg
+                      className="w-6 h-6 text-indigo-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900 group-hover:text-indigo-700 text-center">
+                    {category.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ─── Featured Products Section ─── */}
+      <section id="productos-destacados" className="py-12 sm:py-16 md:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
               Productos Destacados
             </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Nuestros productos más populares, seleccionados especialmente
               para ti.
             </p>
           </div>
 
           {products.length === 0 ? (
-            /* Empty state - no products in database */
-            <div className="text-center py-16">
+            /* Estado vacio */
+            <div className="text-center py-12 sm:py-16">
               <div className="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
                 <svg
                   className="w-8 h-8 text-gray-400"
@@ -117,22 +266,30 @@ export default async function HomePage() {
               </div>
             </div>
           ) : (
-            /* Product grid with real data */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/producto/${product.slug}`}
-                  className="group"
-                >
-                  <Card className="h-full transition-shadow duration-200 hover:shadow-md">
-                    {/* Product image */}
-                    <div className="aspect-square bg-gray-100 overflow-hidden">
-                      {product.image_url ? (
+            /* Grid de productos con datos reales */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {products.map((product) => {
+                const data = productData.get(product.id);
+                const totalStock = data?.total_stock ?? 0;
+                const price = data?.min_price ?? 0;
+                const imageUrl = data?.primary_image_url ?? null;
+                const stock = formatStock(totalStock);
+                const isOutOfStock = totalStock === 0;
+
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/producto/${product.slug}`}
+                    className="group block relative rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md"
+                  >
+                    {/* Imagen */}
+                    <div className="aspect-square bg-gray-100 overflow-hidden relative">
+                      {imageUrl ? (
                         <img
-                          src={product.image_url}
+                          src={imageUrl}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -151,31 +308,47 @@ export default async function HomePage() {
                           </svg>
                         </div>
                       )}
+
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                          <span className="bg-gray-900 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            Agotado
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <CardContent>
-                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
+                    {/* Contenido */}
+                    <div className="p-3 sm:p-4">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate text-sm sm:text-base">
                         {product.name}
                       </h3>
-                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                      <p className="mt-1 text-xs sm:text-sm text-gray-500 line-clamp-2">
                         {product.description}
                       </p>
-                      <p className="mt-2 text-lg font-bold text-indigo-600">
-                        ${(product.price / 100).toFixed(2)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <p className="text-base sm:text-lg font-bold text-indigo-600">
+                          {price > 0 ? formatPrice(price) : "—"}
+                        </p>
+                        <span
+                          className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full border ${STOCK_VARIANT_STYLES[stock.variant]}`}
+                        >
+                          {stock.label}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 md:py-24 bg-white">
+      {/* ─── Features Section ─── */}
+      <section className="py-12 sm:py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
                 <svg
