@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { supabase } from "@/lib/supabase";
+import { getActiveProducts, getCategories, ProductData } from "@/lib/data";
 import { formatPrice, formatStock, STOCK_VARIANT_STYLES } from "@/lib/format";
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -37,97 +37,22 @@ interface ProductImage {
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
-async function getFeaturedProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("v_active_products")
-    .select("*")
-    .limit(4);
-
-  if (error) {
-    console.error("Failed to fetch featured products:", error.message);
+async function getFeaturedProducts(): Promise<ProductData[]> {
+  try {
+    return await getActiveProducts(4);
+  } catch (e) {
+    console.error("Failed to fetch products:", e);
     return [];
   }
-  return (data as Product[]) || [];
 }
 
-async function getProductsStock(
-  productIds: string[]
-): Promise<Map<string, { total_stock: number; min_price: number; primary_image_url: string | null }>> {
-  if (productIds.length === 0) return new Map();
-
-  // Obtener stock y precio minimo de variantes
-  const { data: variants, error: vError } = await supabase
-    .from("v_active_variants")
-    .select("product_id, stock_quantity, price_amount")
-    .in("product_id", productIds);
-
-  if (vError) {
-    console.error("Failed to fetch variants:", vError.message);
-    return new Map();
-  }
-
-  const typedVariants = variants as ProductVariant[] | null;
-
-  // Agregar stock por producto
-  const stockMap = new Map<string, { total_stock: number; min_price: number }>();
-  for (const v of typedVariants || []) {
-    const existing = stockMap.get(v.product_id);
-    if (existing) {
-      existing.total_stock += v.stock_quantity;
-      if (v.price_amount < existing.min_price) {
-        existing.min_price = v.price_amount;
-      }
-    } else {
-      stockMap.set(v.product_id, {
-        total_stock: v.stock_quantity,
-        min_price: v.price_amount,
-      });
-    }
-  }
-
-  // Obtener imagenes primarias
-  const { data: images, error: iError } = await supabase
-    .from("v_product_gallery")
-    .select("product_id, image_url")
-    .in("product_id", productIds)
-    .eq("is_primary", true);
-
-  if (iError) {
-    console.error("Failed to fetch images:", iError.message);
-  }
-
-  const imageMap = new Map<string, string>();
-  for (const img of (images as ProductImage[]) || []) {
-    if (!imageMap.has(img.product_id)) {
-      imageMap.set(img.product_id, img.image_url);
-    }
-  }
-
-  // Combinar
-  const result = new Map<string, { total_stock: number; min_price: number; primary_image_url: string | null }>();
-  for (const id of productIds) {
-    const stock = stockMap.get(id);
-    result.set(id, {
-      total_stock: stock?.total_stock ?? 0,
-      min_price: stock?.min_price ?? 0,
-      primary_image_url: imageMap.get(id) ?? null,
-    });
-  }
-
-  return result;
-}
-
-async function getCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    console.error("Failed to fetch categories:", error.message);
+async function getCategoryList() {
+  try {
+    return await getCategories();
+  } catch {
     return [];
   }
+}
   return (data as Category[]) || [];
 }
 
@@ -136,11 +61,8 @@ async function getCategories(): Promise<Category[]> {
 export default async function HomePage() {
   const [products, categories] = await Promise.all([
     getFeaturedProducts(),
-    getCategories(),
+    getCategoryList(),
   ]);
-
-  const productIds = products.map((p) => p.id);
-  const productData = await getProductsStock(productIds);
 
   return (
     <div>
@@ -269,10 +191,9 @@ export default async function HomePage() {
             /* Grid de productos con datos reales */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {products.map((product) => {
-                const data = productData.get(product.id);
-                const totalStock = data?.total_stock ?? 0;
-                const price = data?.min_price ?? 0;
-                const imageUrl = data?.primary_image_url ?? null;
+                const totalStock = product.variants?.reduce((s, v) => s + v.stock_quantity, 0) ?? 0;
+                const price = product.variants?.length ? Math.min(...product.variants.map(v => v.price_amount)) : 0;
+                const imageUrl = product.primary_image_url;
                 const stock = formatStock(totalStock);
                 const isOutOfStock = totalStock === 0;
 
