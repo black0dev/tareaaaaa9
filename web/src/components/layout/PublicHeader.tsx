@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CartIcon from "@/components/cart/CartIcon";
 
 export default function PublicHeader() {
   return (
@@ -30,6 +31,9 @@ export default function PublicHeader() {
               Catálogo
             </Link>
           </nav>
+
+          {/* Cart icon (visible on all screen sizes) */}
+          <CartIcon />
 
           <div className="sm:hidden">
             <Link
