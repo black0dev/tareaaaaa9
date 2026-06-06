@@ -1,0 +1,32 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copiar código fuente y compilar
+COPY . .
+RUN npm run build
+
+# =============================================================================
+# Imagen de producción (más ligera)
+# =============================================================================
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copiar solo lo necesario para producción
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.* ./
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start"]
