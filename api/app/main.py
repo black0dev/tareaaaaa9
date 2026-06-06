@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.exceptions import AppError
-from app.routers import admin_auth, admin_orders, admin_stock, checkout, health
+from app.routers import admin_auth, admin_orders, admin_stock, catalog, checkout, health
 
 app = FastAPI(
     title="Tienda de Camisetas MVP API",
@@ -24,6 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api/v1")
+app.include_router(catalog.router, prefix="/api/v1")
 app.include_router(checkout.router, prefix="/api/v1")
 app.include_router(admin_auth.router, prefix="/api/v1")
 app.include_router(admin_orders.router, prefix="/api/v1")
