@@ -32,12 +32,10 @@ async def manual_confirm_payment(
         payment = Payment(
             order_id=order.id,
             amount=order.total_amount,
-            provider="manual",
-            provider_reference=reference,
+            method="transferencia",
+            reference=reference,
             status="confirmado",
-            paid_at=now,
-            confirmed_by_profile_id=admin_profile_id,
-            notes=notes,
+            confirmed_at=now,
         )
         db.add(payment)
         await db.flush()
@@ -48,30 +46,27 @@ async def manual_confirm_payment(
                 "El pago ya fue confirmado anteriormente.",
             )
         payment.status = "confirmado"
-        payment.provider_reference = reference or payment.provider_reference
-        payment.paid_at = now
-        payment.confirmed_by_profile_id = admin_profile_id
+        payment.reference = reference or payment.reference
+        payment.confirmed_at = now
 
     event = PaymentEvent(
         payment_id=payment.id,
         event_type="manual_confirmation",
-        event_status="confirmado",
-        payload_snapshot={"reference": reference, "notes": notes},
-        created_by_profile_id=admin_profile_id,
+        event_data={"reference": reference, "notes": notes},
+        created_by=admin_profile_id,
     )
     db.add(event)
 
     previous_order_status = order.status
     if order.status == "pendiente_pago":
         order.status = "pagado"
-        order.payment_status = "confirmado"
 
         status_history = OrderStatusHistory(
             order_id=order.id,
-            from_status=previous_order_status,
-            to_status="pagado",
-            changed_by_profile_id=admin_profile_id,
-            change_reason="Pago confirmado manualmente por admin",
+            previous_status=previous_order_status,
+            new_status="pagado",
+            changed_by=admin_profile_id,
+            notes="Pago confirmado manualmente por admin",
         )
         db.add(status_history)
 
@@ -79,5 +74,5 @@ async def manual_confirm_payment(
         "order_id": order.id,
         "payment_status": payment.status,
         "order_status": order.status,
-        "confirmed_at": payment.paid_at,
+        "confirmed_at": payment.confirmed_at,
     }

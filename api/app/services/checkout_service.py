@@ -15,14 +15,21 @@ from app.models import (
 )
 
 
+VALID_STATES = {
+    "pendiente_pago",
+    "pagado",
+    "en_preparacion",
+    "listo_para_entrega",
+    "entregado",
+    "cancelado",
+    "reembolsado",
+}
+
+
 def _generate_order_number() -> str:
     ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     suffix = uuid.uuid4().hex[:6].upper()
     return f"ORD-{ts}-{suffix}"
-
-
-def _variant_label(variant: ProductVariant) -> str:
-    return f"{variant.size} / {variant.color}" if variant.color else variant.size
 
 
 class CheckoutError(Exception):
@@ -66,16 +73,16 @@ async def _fetch_and_validate_variants(
         if not variant.is_active or not entry["product_active"]:
             raise CheckoutError(
                 "variant_inactive",
-                f"La variante {_variant_label(variant)} no esta disponible.",
+                f"La variante {variant.name} no esta disponible.",
                 {"variant_id": vid},
             )
 
-        if variant.stock_quantity < line["quantity"]:
+        if variant.stock < line["quantity"]:
             raise CheckoutError(
                 "stock_insufficient",
-                f"No hay stock suficiente para la variante '{_variant_label(variant)}'. "
-                f"Solicitado: {line['quantity']}, disponible: {variant.stock_quantity}.",
-                {"variant_id": vid, "requested": line["quantity"], "available": variant.stock_quantity},
+                f"No hay stock suficiente para la variante '{variant.name}'. "
+                f"Solicitado: {line['quantity']}, disponible: {variant.stock}.",
+                {"variant_id": vid, "requested": line["quantity"], "available": variant.stock},
             )
 
         validated.append(line)
@@ -113,34 +120,32 @@ async def create_order(
         variant_map[variant.id] = (variant, product)
 
     price_changed_errors = []
-    items_subtotal_amount = 0
+    subtotal_amount = 0
     order_items_data = []
 
     for line in lines:
         variant, product = variant_map[line["product_variant_id"]]
-        db_price = variant.price_amount
+        db_price = product.base_price + variant.price_adjustment
 
         if line["unit_price"] != db_price:
             price_changed_errors.append({
                 "variant_id": variant.id,
-                "variant_label": _variant_label(variant),
+                "variant_name": variant.name,
                 "sent_price": line["unit_price"],
                 "actual_price": db_price,
             })
 
         line_subtotal = db_price * line["quantity"]
-        items_subtotal_amount += line_subtotal
+        subtotal_amount += line_subtotal
 
         order_items_data.append({
-            "variant_id": variant.id,
-            "product_id": product.id,
-            "product_name_snapshot": product.name,
-            "variant_label_snapshot": _variant_label(variant),
-            "sku_snapshot": variant.sku,
+            "product_variant_id": variant.id,
+            "product_name": product.name,
+            "variant_name": variant.name,
+            "sku": variant.sku,
             "quantity": line["quantity"],
-            "unit_price_amount": db_price,
-            "line_subtotal_amount": line_subtotal,
-            "currency_code": variant.currency_code,
+            "unit_price": db_price,
+            "subtotal": line_subtotal,
         })
 
     if price_changed_errors:
@@ -150,22 +155,21 @@ async def create_order(
             {"changes": price_changed_errors},
         )
 
-    total_amount = items_subtotal_amount
+    total_amount = subtotal_amount
     order_number = _generate_order_number()
 
     order = Order(
         order_number=order_number,
-        customer_full_name=customer_name,
+        customer_name=customer_name,
         customer_email=customer_email,
         customer_phone=customer_phone,
         fulfillment_type=fulfillment_type,
         shipping_address_json=shipping_address_json,
         pickup_notes=pickup_notes,
         status="pendiente_pago",
-        payment_status="pendiente",
-        items_subtotal_amount=items_subtotal_amount,
+        subtotal_amount=subtotal_amount,
         total_amount=total_amount,
-        customer_notes=notes,
+        notes=notes,
     )
     db.add(order)
     await db.flush()
@@ -178,29 +182,30 @@ async def create_order(
         variant_id = line["product_variant_id"]
         variant, _ = variant_map[variant_id]
         qty = line["quantity"]
-        previous_stock = variant.stock_quantity
+        previous_stock = variant.stock
 
         await db.execute(
             update(ProductVariant)
             .where(ProductVariant.id == variant_id)
-            .values(stock_quantity=ProductVariant.stock_quantity - qty)
+            .values(stock=ProductVariant.stock - qty)
         )
 
         adjustment = StockAdjustment(
-            variant_id=variant_id,
-            order_id=order.id,
-            reason_type="creacion_pedido",
-            delta_quantity=-qty,
-            previous_stock_quantity=previous_stock,
-            new_stock_quantity=previous_stock - qty,
+            product_variant_id=variant_id,
+            adjustment=-qty,
+            previous_stock=previous_stock,
+            new_stock=previous_stock - qty,
+            reason="creacion_pedido",
+            reference_type="order",
+            reference_id=order.id,
         )
         db.add(adjustment)
 
     status_history = OrderStatusHistory(
         order_id=order.id,
-        from_status=None,
-        to_status="pendiente_pago",
-        change_reason="Pedido creado",
+        previous_status=None,
+        new_status="pendiente_pago",
+        notes="Pedido creado",
     )
     db.add(status_history)
 

@@ -49,29 +49,30 @@ async def _reingress_stock(
 
     for item in items:
         result_var = await db.execute(
-            select(ProductVariant).where(ProductVariant.id == item.variant_id)
+            select(ProductVariant).where(ProductVariant.id == item.product_variant_id)
         )
         variant = result_var.scalar_one_or_none()
         if variant is None:
             continue
 
-        previous_stock = variant.stock_quantity
+        previous_stock = variant.stock
         new_stock = previous_stock + item.quantity
 
         await db.execute(
             update(ProductVariant)
-            .where(ProductVariant.id == item.variant_id)
-            .values(stock_quantity=ProductVariant.stock_quantity + item.quantity)
+            .where(ProductVariant.id == item.product_variant_id)
+            .values(stock=ProductVariant.stock + item.quantity)
         )
 
         adjustment = StockAdjustment(
-            variant_id=item.variant_id,
-            order_id=order_id,
-            reason_type="cancelacion_pedido",
-            delta_quantity=item.quantity,
-            previous_stock_quantity=previous_stock,
-            new_stock_quantity=new_stock,
-            created_by_profile_id=changed_by,
+            product_variant_id=item.product_variant_id,
+            adjustment=item.quantity,
+            previous_stock=previous_stock,
+            new_stock=new_stock,
+            reason="devolucion_cancelacion",
+            reference_type="order",
+            reference_id=order_id,
+            created_by=changed_by,
         )
         db.add(adjustment)
 
@@ -93,10 +94,10 @@ async def transition_status(
 
     status_history = OrderStatusHistory(
         order_id=order.id,
-        from_status=previous_status,
-        to_status=new_status,
-        changed_by_profile_id=changed_by,
-        change_reason=notes,
+        previous_status=previous_status,
+        new_status=new_status,
+        changed_by=changed_by,
+        notes=notes,
     )
     db.add(status_history)
 
