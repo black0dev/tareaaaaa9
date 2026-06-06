@@ -73,11 +73,10 @@ class ProductVariant(Base):
         UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False
     )
     sku: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
     size: Mapped[str] = mapped_column(String(10), nullable=False)
     color: Mapped[str] = mapped_column(String(50), nullable=False)
-    price_adjustment: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    price_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    stock_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -273,18 +272,14 @@ class StockAdjustment(Base):
     __tablename__ = "stock_adjustments"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    product_variant_id: Mapped[str] = mapped_column(
+    variant_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey("product_variants.id", ondelete="CASCADE"), nullable=False
     )
-    adjustment: Mapped[int] = mapped_column(Integer, nullable=False)
-    previous_stock: Mapped[int] = mapped_column(Integer, nullable=False)
-    new_stock: Mapped[int] = mapped_column(Integer, nullable=False)
-    reason: Mapped[str] = mapped_column(String(50), nullable=False)
-    reference_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    reference_id: Mapped[str | None] = mapped_column(
-        UUID(as_uuid=False), nullable=True
-    )
-    created_by: Mapped[str | None] = mapped_column(
+    delta_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    previous_stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    new_stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_by_profile_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

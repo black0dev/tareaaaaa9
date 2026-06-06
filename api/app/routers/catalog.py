@@ -18,13 +18,13 @@ from app.schemas.common import APIResponse
 router = APIRouter(tags=["Catalog"])
 
 
-def _build_variant_out(v: ProductVariant, base_price: int) -> ProductVariantOut:
+def _build_variant_out(v: ProductVariant) -> ProductVariantOut:
     return ProductVariantOut(
         id=v.id,
         size=v.size,
         color=v.color,
-        price_amount=base_price + v.price_adjustment,
-        stock_quantity=v.stock,
+        price_amount=v.price_amount,
+        stock_quantity=v.stock_quantity,
         sku=v.sku,
         is_active=v.is_active,
     )
@@ -33,7 +33,7 @@ def _build_variant_out(v: ProductVariant, base_price: int) -> ProductVariantOut:
 def _build_image_out(img: ProductImage) -> ProductImageOut:
     return ProductImageOut(
         id=img.id,
-        image_url=img.url,
+        image_url=img.image_url,
         alt_text=img.alt_text,
         is_primary=img.is_primary,
         sort_order=img.sort_order,
@@ -84,7 +84,7 @@ async def list_products(
     data = []
     for p in products:
         active_variants = [v for v in p.variants if v.is_active]
-        variants_out = [_build_variant_out(v, p.base_price) for v in active_variants]
+        variants_out = [_build_variant_out(v) for v in active_variants]
 
         primary_img = next(
             (img for img in sorted(p.images, key=lambda i: i.sort_order) if img.is_primary),
@@ -136,7 +136,7 @@ async def get_product_detail(
         )
 
     active_variants = [v for v in product.variants if v.is_active]
-    variants_out = [_build_variant_out(v, product.base_price) for v in active_variants]
+    variants_out = [_build_variant_out(v) for v in active_variants]
 
     sorted_images = sorted(product.images, key=lambda i: i.sort_order)
     images_out = [_build_image_out(img) for img in sorted_images]
