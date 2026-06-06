@@ -18,11 +18,11 @@ INSERT INTO profiles (id, auth_user_id, full_name, email, phone, is_active, hash
     (
         '20000000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000001',
-        'Admin Principal',
+        'Administrador',
         'admin@tienda.com',
         '+51999999999',
         TRUE,
-        '$2b$12$LJ3m4ys3Lk0TSwHCpNqrROAUhJQkDxYRXACvCz58QJpSK5IGjG.lW'
+        '$2b$12$GG7ay/9NOBZdTxRCk26zJu3elWy4/9UKBTOzQlGhvISS6Fo/ar1HO'
     )
 ON CONFLICT (auth_user_id) DO NOTHING;
 

@@ -33,7 +33,7 @@ def _build_variant_out(v: ProductVariant) -> ProductVariantOut:
 def _build_image_out(img: ProductImage) -> ProductImageOut:
     return ProductImageOut(
         id=img.id,
-        image_url=img.url,
+        image_url=img.image_url,
         alt_text=img.alt_text,
         is_primary=img.is_primary,
         sort_order=img.sort_order,
@@ -101,7 +101,7 @@ async def list_products(
                 description=p.description,
                 category_name=p.category.name if p.category else None,
                 variants=variants_out,
-                primary_image_url=primary_img.url if primary_img else None,
+                primary_image_url=primary_img.image_url if primary_img else None,
             )
         )
 
@@ -155,7 +155,7 @@ async def get_product_detail(
         category_name=product.category.name if product.category else None,
         variants=variants_out,
         images=images_out,
-        primary_image_url=primary_img.url if primary_img else None,
+        primary_image_url=primary_img.image_url if primary_img else None,
     )
 
     return APIResponse.success(data=detail.model_dump())

@@ -59,7 +59,7 @@ def _product_to_out(p: Product) -> AdminProductListItem:
         updated_at=p.updated_at,
         variants_count=len(active_variants),
         total_stock=total_stock,
-        primary_image_url=primary_img.url if primary_img else None,
+        primary_image_url=primary_img.image_url if primary_img else None,
     )
 
 
@@ -448,7 +448,7 @@ async def admin_upload_image(
     out = AdminImageOut(
         id=image.id,
         product_id=image.product_id,
-        url=image.url,
+        url=image.image_url,
         alt_text=image.alt_text,
         sort_order=image.sort_order,
         is_primary=image.is_primary,
@@ -510,7 +510,7 @@ async def admin_set_image_primary(
     out = AdminImageOut(
         id=image.id,
         product_id=image.product_id,
-        url=image.url,
+        url=image.image_url,
         alt_text=image.alt_text,
         sort_order=image.sort_order,
         is_primary=image.is_primary,

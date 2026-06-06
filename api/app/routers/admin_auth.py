@@ -56,7 +56,7 @@ async def admin_login(payload: LoginRequest, db: AsyncSession = Depends(get_db))
         )
 
     is_admin = any(
-        getattr(ur.role, "name", None) == "admin" for ur in profile.roles
+        getattr(ur.role, "code", None) == "admin" for ur in profile.roles
     )
     if not is_admin:
         raise HTTPException(
