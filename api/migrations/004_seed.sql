@@ -14,14 +14,15 @@ ON CONFLICT (code) DO NOTHING;
 -- -----------------------------------------------------------------------------
 -- 2. Perfil administrador (auth_user_id fijo para desarrollo)
 -- -----------------------------------------------------------------------------
-INSERT INTO profiles (id, auth_user_id, full_name, email, phone, is_active) VALUES
+INSERT INTO profiles (id, auth_user_id, full_name, email, phone, is_active, hashed_password) VALUES
     (
         '20000000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000001',
         'Admin Principal',
-        'admin@tiendacamisetas.pe',
+        'admin@tienda.com',
         '+51999999999',
-        TRUE
+        TRUE,
+        '$2b$12$LJ3m4ys3Lk0TSwHCpNqrROAUhJQkDxYRXACvCz58QJpSK5IGjG.lW'
     )
 ON CONFLICT (auth_user_id) DO NOTHING;
 

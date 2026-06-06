@@ -43,15 +43,16 @@ CREATE INDEX IF NOT EXISTS idx_roles_code ON roles (code);
 -- profiles — Perfiles de usuario (1:1 con auth.users de Supabase)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS profiles (
-    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_user_id   UUID         NOT NULL UNIQUE,
-    full_name      VARCHAR(255) NOT NULL,
-    email          VARCHAR(255) NOT NULL UNIQUE,
-    phone          VARCHAR(50),
-    is_active      BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at     TIMESTAMPTZ
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id    UUID         NOT NULL UNIQUE,
+    full_name       VARCHAR(255) NOT NULL,
+    email           VARCHAR(255) NOT NULL UNIQUE,
+    phone           VARCHAR(50),
+    hashed_password VARCHAR(255),
+    is_active       BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    deleted_at      TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_profiles_auth_user_id ON profiles (auth_user_id);
