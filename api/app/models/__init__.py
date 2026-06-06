@@ -51,6 +51,8 @@ class Product(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(220), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    material: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
     base_price: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
