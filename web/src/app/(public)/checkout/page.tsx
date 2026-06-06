@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
+import { STORE_CONFIG } from "@/lib/config";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card, { CardContent, CardHeader } from "@/components/ui/Card";
@@ -55,7 +56,11 @@ export default function CheckoutPage() {
   >(null);
 
   // Costo de envio
-  const shippingCost = fulfillmentType === "shipping" ? 1500 : 0; // S/ 15.00
+  const subtotal = items.reduce((sum, item) => sum + item.price_amount * item.quantity, 0);
+  const isFreeShipping = subtotal >= STORE_CONFIG.shipping.freeFrom;
+  const shippingCost = fulfillmentType === "shipping" && !isFreeShipping
+    ? STORE_CONFIG.shipping.cost
+    : 0;
   const orderTotal = totalAmount + shippingCost;
 
   // ─── Validacion ─────────────────────────────────────────────────────────
@@ -546,7 +551,11 @@ export default function CheckoutPage() {
                     <span className="text-gray-600">Envío</span>
                     <span className="font-medium">
                       {shippingCost === 0 ? (
-                        <span className="text-green-600">S/ 0.00</span>
+                        <span className="text-green-600">
+                          {fulfillmentType === "shipping"
+                            ? "¡Envío gratis!"
+                            : "S/ 0.00"}
+                        </span>
                       ) : (
                         <span className="text-gray-900">
                           {formatPrice(shippingCost)}

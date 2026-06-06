@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.exceptions import AppError
-from app.routers import admin_auth, admin_orders, admin_products, admin_stock, catalog, checkout, health
+from app.routers import admin_auth, admin_orders, admin_products, admin_stock, catalog, checkout, config, health
 
 app = FastAPI(
     title="Tienda de Camisetas MVP API",
@@ -33,6 +33,7 @@ app.include_router(admin_auth.router, prefix="/api/v1")
 app.include_router(admin_orders.router, prefix="/api/v1")
 app.include_router(admin_products.router, prefix="/api/v1")
 app.include_router(admin_stock.router, prefix="/api/v1")
+app.include_router(config.router, prefix="/api/v1")
 
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
