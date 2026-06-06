@@ -25,6 +25,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user: dict
 
 
 @router.post("/login", response_model=APIResponse)
@@ -49,7 +50,7 @@ async def admin_login(payload: LoginRequest, db: AsyncSession = Depends(get_db))
         )
 
     is_admin = any(
-        getattr(ur.role, "name", None) == "admin" for ur in profile.roles
+        getattr(ur.role, "code", None) == "admin" for ur in profile.roles
     )
     if not is_admin:
         raise HTTPException(
@@ -65,6 +66,14 @@ async def admin_login(payload: LoginRequest, db: AsyncSession = Depends(get_db))
     }
     access_token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-    return APIResponse.success(
-        data=LoginResponse(access_token=access_token).model_dump()
-    )
+    user_data = {
+        "id": str(profile.id),
+        "email": profile.email,
+        "full_name": profile.full_name,
+    }
+
+    return APIResponse.success(data={
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user_data,
+    })

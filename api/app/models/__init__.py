@@ -29,14 +29,16 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    slug: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     products: Mapped[list["Product"]] = relationship(back_populates="category")
 
@@ -45,18 +47,20 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    category_id: Mapped[str] = mapped_column(
+    category_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
     )
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
-    slug: Mapped[str] = mapped_column(String(220), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    base_price: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    material: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    brand: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     category: Mapped["Category | None"] = relationship(back_populates="products")
     variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product")
@@ -65,22 +69,24 @@ class Product(Base):
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"
+    __table_args__ = (UniqueConstraint("product_id", "size", "color", name="unique_product_size_color"),)
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     product_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False
     )
-    sku: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
-    size: Mapped[str] = mapped_column(String(10), nullable=False)
-    color: Mapped[str] = mapped_column(String(50), nullable=False)
-    price_adjustment: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    sku: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    size: Mapped[str] = mapped_column(String(50), nullable=False)
+    color: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    price_amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency_code: Mapped[str] = mapped_column(String(10), default="PEN", nullable=False)
+    stock_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     product: Mapped["Product"] = relationship(back_populates="variants")
 
@@ -92,11 +98,18 @@ class ProductImage(Base):
     product_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False
     )
-    url: Mapped[str] = mapped_column(String(500), nullable=False)
-    alt_text: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    variant_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True
+    )
+    image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    alt_text: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     product: Mapped["Product"] = relationship(back_populates="images")
 
@@ -109,15 +122,17 @@ class Profile(Base):
     __tablename__ = "profiles"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    auth_user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False, unique=True)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     roles: Mapped[list["UserRole"]] = relationship(back_populates="profile")
     addresses: Mapped[list["CustomerAddress"]] = relationship(back_populates="profile")
@@ -127,15 +142,19 @@ class Role(Base):
     __tablename__ = "roles"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    description: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    code: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     user_roles: Mapped[list["UserRole"]] = relationship(back_populates="role")
 
 
 class UserRole(Base):
     __tablename__ = "user_roles"
-    __table_args__ = (UniqueConstraint("profile_id", "role_id", name="uq_profile_role"),)
+    __table_args__ = (UniqueConstraint("profile_id", "role_id", name="unique_profile_role"),)
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     profile_id: Mapped[str] = mapped_column(
@@ -154,21 +173,27 @@ class CustomerAddress(Base):
     __tablename__ = "customer_addresses"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    profile_id: Mapped[str | None] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
+    profile_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
     )
-    label: Mapped[str] = mapped_column(String(100), nullable=True)
-    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    phone: Mapped[str] = mapped_column(String(30), nullable=False)
-    street: Mapped[str] = mapped_column(String(200), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    recipient_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    country: Mapped[str] = mapped_column(String(10), default="PE", nullable=False)
+    region: Mapped[str | None] = mapped_column(String(100), nullable=True)
     city: Mapped[str] = mapped_column(String(100), nullable=False)
-    state: Mapped[str] = mapped_column(String(100), nullable=False)
-    zip_code: Mapped[str] = mapped_column(String(20), nullable=False)
-    country: Mapped[str] = mapped_column(String(100), default="Mexico", nullable=False)
+    address_line_1: Mapped[str] = mapped_column(String(255), nullable=False)
+    address_line_2: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reference_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    postal_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    profile: Mapped["Profile | None"] = relationship(back_populates="addresses")
+    profile: Mapped["Profile"] = relationship(back_populates="addresses")
 
 
 # ---------------------------------------------------------------------------
@@ -179,21 +204,31 @@ class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    order_number: Mapped[str] = mapped_column(String(30), nullable=False, unique=True)
-    customer_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    order_number: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    customer_profile_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
+    )
     customer_email: Mapped[str] = mapped_column(String(255), nullable=False)
-    customer_phone: Mapped[str] = mapped_column(String(30), nullable=False)
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pendiente_pago")
-    fulfillment_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    customer_full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer_phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(100), nullable=False, default="pendiente_pago")
+    payment_status: Mapped[str] = mapped_column(String(100), nullable=False, default="pendiente")
+    fulfillment_type: Mapped[str] = mapped_column(String(100), nullable=False)
     shipping_address_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     pickup_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    subtotal_amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    total_amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    currency_code: Mapped[str] = mapped_column(String(10), default="PEN", nullable=False)
+    items_subtotal_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    shipping_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    discount_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    customer_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    placed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order")
     payments: Mapped[list["Payment"]] = relationship(back_populates="order")
@@ -205,17 +240,21 @@ class OrderItem(Base):
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     order_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False
     )
-    product_variant_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("product_variants.id", ondelete="RESTRICT"), nullable=False
+    product_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("products.id", ondelete="SET NULL"), nullable=True
     )
-    product_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    variant_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    sku: Mapped[str] = mapped_column(String(50), nullable=False)
+    variant_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True
+    )
+    product_name_snapshot: Mapped[str] = mapped_column(String(255), nullable=False)
+    variant_label_snapshot: Mapped[str] = mapped_column(String(255), nullable=False)
+    sku_snapshot: Mapped[str] = mapped_column(String(100), nullable=False)
+    unit_price_amount: Mapped[int] = mapped_column(Integer, nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    unit_price: Mapped[int] = mapped_column(Integer, nullable=False)
-    subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
+    line_subtotal_amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency_code: Mapped[str] = mapped_column(String(10), default="PEN", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     order: Mapped["Order"] = relationship(back_populates="items")
@@ -230,13 +269,19 @@ class Payment(Base):
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     order_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, unique=True
+        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False
     )
+    provider: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    method_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(100), nullable=False, default="pendiente")
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    method: Mapped[str] = mapped_column(String(30), nullable=False, default="transferencia")
-    reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pendiente")
-    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    currency_code: Mapped[str] = mapped_column(String(10), default="PEN", nullable=False)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    confirmed_by_profile_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -251,11 +296,13 @@ class PaymentEvent(Base):
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     payment_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("payments.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=False), ForeignKey("payments.id", ondelete="RESTRICT"), nullable=False
     )
-    event_type: Mapped[str] = mapped_column(String(30), nullable=False)
-    event_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    created_by: Mapped[str | None] = mapped_column(
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    event_status: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    provider_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    payload_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_by_profile_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -271,18 +318,18 @@ class StockAdjustment(Base):
     __tablename__ = "stock_adjustments"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    product_variant_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("product_variants.id", ondelete="CASCADE"), nullable=False
+    variant_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("product_variants.id", ondelete="RESTRICT"), nullable=False
     )
-    adjustment: Mapped[int] = mapped_column(Integer, nullable=False)
-    previous_stock: Mapped[int] = mapped_column(Integer, nullable=False)
-    new_stock: Mapped[int] = mapped_column(Integer, nullable=False)
-    reason: Mapped[str] = mapped_column(String(50), nullable=False)
-    reference_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    reference_id: Mapped[str | None] = mapped_column(
-        UUID(as_uuid=False), nullable=True
+    order_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True
     )
-    created_by: Mapped[str | None] = mapped_column(
+    reason_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    delta_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    previous_stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    new_stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_profile_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -297,14 +344,14 @@ class OrderStatusHistory(Base):
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     order_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=False), ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False
     )
-    previous_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    new_status: Mapped[str] = mapped_column(String(30), nullable=False)
-    changed_by: Mapped[str | None] = mapped_column(
+    from_status: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(100), nullable=False)
+    changed_by_profile_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
     )
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    change_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     order: Mapped["Order"] = relationship(back_populates="status_history")

@@ -8,7 +8,7 @@ class StockAdjustmentRequest(BaseModel):
 
 
 class StockAdjustmentResponse(BaseModel):
-    product_variant_id: str
+    variant_id: str
     previous_stock: int
     adjustment: int
     new_stock: int
