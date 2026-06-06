@@ -32,18 +32,16 @@ export default function PublicHeader() {
             </Link>
           </nav>
 
-          {/* Cart icon + mobile nav */}
-          <div className="flex items-center gap-2">
-            <CartIcon />
+          {/* Cart icon (visible on all screen sizes) */}
+          <CartIcon />
 
-            <div className="sm:hidden">
-              <Link
-                href="/catalogo"
-                className="text-sm font-medium text-indigo-600"
-              >
-                Catálogo
-              </Link>
-            </div>
+          <div className="sm:hidden">
+            <Link
+              href="/catalogo"
+              className="text-sm font-medium text-indigo-600"
+            >
+              Catálogo
+            </Link>
           </div>
         </div>
       </div>

@@ -180,7 +180,7 @@ export default function ProductDetailClient({
                   : `Agregar al carrito — ${formatPrice(selectedVariant.price_amount)}`}
             </Button>
 
-            <Link href="/catalogo">
+            <Link href="/carrito">
               <Button
                 variant="outline"
                 size="lg"
